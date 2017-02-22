@@ -578,13 +578,13 @@ Returns list of properties that still must be filled in"
    ["#252525" "#D9D9D9" "#C2C2C2" "#F6F6F6" "#E8E8E8" "#D9D9D9" "#F0F0F0" "#F6F6F6"])
  '(ansi-term-color-vector
    [unspecified "#081724" "#ff694d" "#68f6cb" "#fffe4e" "#bad6e2" "#afc0fd" "#d2f1ff" "#d3f9ee"] t)
- '(custom-enabled-themes nil)
+ '(custom-enabled-themes (quote (clues)))
  '(custom-safe-themes
    (quote
-    ("fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" default)))
+    ("8ec2e01474ad56ee33bc0534bdbe7842eea74dccfb576e09f99ef89a705f5501" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" default)))
  '(evil-want-Y-yank-to-eol t)
  '(fci-rule-character-color "#d9d9d9")
- '(fci-rule-color "#161616" t)
+ '(fci-rule-color "#161616")
  '(fringe-mode 10 nil (fringe))
  '(linum-format " %6d ")
  '(main-line-color1 "#222232")
