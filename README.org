@@ -1,0 +1,4 @@
+* Spacemacs configuration
+My Spacemacs configuration.
+
+I'm not an expert with either Emacs or ELISP so do not take this as a reference setup:)
