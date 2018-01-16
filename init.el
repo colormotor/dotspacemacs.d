@@ -21,6 +21,11 @@ values."
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
    '(
+     colors
+     (colors :variables
+             colors-enable-rainbow-identifiers nil
+             colors-enable-nyan-cat-progress-bar (display-graphic-p))
+     javascript
         osx
         auto-completion
         c-c++
@@ -33,7 +38,9 @@ values."
         bibtex
         (python :variables
                 python-test-runner 'pytest)
-        ;ipython-notebook
+                                        ;ipython-notebook
+        ipython-notebook
+        octave
         deft
         latex
         pdf-tools
@@ -41,8 +48,8 @@ values."
         ivy
         html
         yaml
-        colors
         themes-megapack
+        extra-langs
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -111,8 +118,8 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(wombat
-                         clues
+   dotspacemacs-themes '(clues
+                         wombat
                          fogus
                          purple-haze
                          tao-yin
@@ -131,10 +138,12 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
-   dotspacemacs-default-font '("mononoki"
+   dotspacemacs-default-font '("Source Code Pro"
                                :size 12
                                :weight normal
                                :width normal
+                               ;:ns-antialias-text nil
+                               ;:antialias nil
                                :powerline-scale 1.1)
    ;; The leader key
    dotspacemacs-leader-key "SPC"
@@ -262,7 +271,7 @@ values."
 (defun dotspacemacs/user-init ()
   "Initialization function for user code.
 It is called immediately after `dotspacemacs/init'.  You are free to put almost
-any user code here.  The exception is org related code, which should be placed
+ny user code here.  The exception is org related code, which should be placed
 in `dotspacemacs/user-config'."
   )
 
@@ -272,12 +281,25 @@ This function is called at the very end of Spacemacs initialization after
 layers configuration. You are free to put any user code."
 
   ;; Note, took most of this file from https://github.com/gforsyth/dotfiles/blob/master/.spacemacs
+  (require 'matlab)
+  (defun my-matlab-shell-mode-hook ()
+    (global-set-key "C-c" 'interrupt-process))
+  (setq matlab-shell-hook 'my-matlab-shell-hook)
+  (custom-set-variables
+   '(matlab-shell-command-switches '("-nodesktop -nosplash")))
 
-  ;; Some useless stuff, Make it rainbow
-  (add-hook 'prog-mode-hook 'rainbow-mode)
-  (setq-default dotspacemacs-configuration-layers '(
-                                                    (colors :variables colors-enable-nyan-cat-progress-bar t)))
+  ;; Drag and drop open on mac
+  (if (fboundp 'ns-find-file)
+      (global-set-key [ns-drag-file] 'ns-find-file))
 
+  ;; Disable nyan cat animations
+  (setq nyan-animate-nyancat nil)
+  (setq nyan-wavy-trail nil)
+
+  ;; Trying to fix scrolling
+  (setq mouse-wheel-scroll-amount '(3 ((shift) . 1) ((control) . nil)))
+  (setq mouse-wheel-progressive-speed nil)
+  
   ;; Themes (use SPCE T n to cycle, or SPC T s to use helm)
   ;; [[http://themegallery.robdor.com]]
   (setq-default dotspacemacs-themes '(clues,
@@ -294,6 +316,12 @@ layers configuration. You are free to put any user code."
   ;; and one is the "string" syntax for interactive sessions (e.g. search and replace :S)
   (setq reb-re-syntax 'string)
 
+  ;; Use C-u, C-d also in insert mode
+  (global-set-key "\C-d" nil)
+  ;(define-key evil-insert-state-map (kbd "C-u") 'evil-scroll-up)
+  ;(define-key evil-insert-state-map (kbd "C-d") 'evil-scroll-down)
+  (global-set-key "\C-u" 'evil-scroll-up)
+  (global-set-key "\C-d" 'evil-scroll-down)
 
   ;; Delete selection
   (delete-selection-mode 1)
@@ -301,6 +329,9 @@ layers configuration. You are free to put any user code."
   ;; Comment/uncomment blocks of code
   (global-set-key "\C-cc" 'comment-region)
   (global-set-key "\C-cu" 'uncomment-region)
+
+  ;(global-set-key "\C-\<" 'evil-shift-left); (region-beginning) (region-end)))
+  ;(global-set-key "\C-\>" 'evil-shift-right); (region-beginning) (region-end)))
 
   ;;----------------Stop pinging random countries--------------
   ;;Weird bug in which trying to autocomplete something that looks even remotely
@@ -333,7 +364,7 @@ layers configuration. You are free to put any user code."
 
   (setq org-ref-completion-library 'org-ref-ivy-cite)
   (require 'org-ref)
-
+  
   ;; Big hack to insert biblio entry titles
   ;; unelegant simply because I do not really know LISP
   ;; adapted from: http://www.mail-archive.com/emacs-orgmode@gnu.org/msg110385.html
@@ -352,6 +383,9 @@ layers configuration. You are free to put any user code."
   (set-format "incollection")
   (set-format "proceedings")
   (set-format "unpublished")
+
+  ;; Snippets (notes)
+  ;; <py creates an ob-ipython code block
 
   ;; set default latex engine to be xelatex
   ;(setq TeX-engine 'xetex)
@@ -431,6 +465,8 @@ layers configuration. You are free to put any user code."
   (add-hook 'org-mode-hook 'org-mode-reftex-setup)
   (add-hook 'org-mode-hook 'turn-on-auto-fill)
 
+  (setq python-shell-prompt-detect-failure-warning nil)
+
   ;;------------------------------------------------------------
   ;;----------------------BABEL---------------------------------
   ;;------------------------------------------------------------
@@ -441,15 +477,28 @@ layers configuration. You are free to put any user code."
      (python . t)
      (calc . t)
      (ipython . t)
+     (octave . t)
+     (matlab . t)
      )
    )
 
-  (setq org-src-tab-acts-natively t)
+  (setq org-edit-src-content-indentation 0
+        org-src-preserve-indentation t
+        org-src-tab-acts-natively t
+        org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-support-shift-select 'always)
+
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
 
   ;;------------------------------------------------------------
   ;;----------------------org-mode------------------------------
   ;;------------------------------------------------------------
+  
+  ;(setq org-src-block-faces '(("emacs-lisp" (:background "#112233"))
+  ;                            ("python" (:background "#2221ff"))
+  ;                            ("ipython" (:background "#222222"))))
+
   ;; disable evaluation security (just run the damn thing)
   (setq org-confirm-babel-evaluate nil)
   ;; when capturing new notes, place them in notes.org sub orgfile in org-directory
@@ -475,21 +524,20 @@ layers configuration. You are free to put any user code."
   ;;------------------------------------------------------------
   ;; From http://www.holgerschurig.de/en/emacs-blog-from-org-to-hugo/
   (defun hugo-ensure-property (property)
-  "Make sure that a property exists. If not, it will be created.
+    "Make sure that a property exists. If not, it will be created.
 
 Returns the property name if the property has been created,
 otherwise nil."
-  (if (org-entry-get nil property)
-      nil
-    (progn (org-entry-put nil property "")
-           property)))
+    (if (org-entry-get nil property)
+        nil
+      (progn (org-entry-put nil property "")
+             property)))
 
   (defun hugo-ensure-properties ()
     "This ensures that several properties exists. If not, these
 properties will be created in an empty form. In this case, the
 drawer will also be opened and the cursor will be positioned
 at the first element that needs to be filled.
-
 Returns list of properties that still must be filled in"
     (require 'dash)
     (let ((current-time (format-time-string (org-time-stamp-format t t) (org-current-time)))
@@ -498,13 +546,13 @@ Returns list of properties that still must be filled in"
       (save-excursion
         (unless (org-entry-get nil "TITLE")
           (org-entry-put nil "TITLE" (nth 4 (org-heading-components))))
-        (message "TITLE done")
         (setq first (--first it (mapcar #'hugo-ensure-property '("HUGO_TAGS" "HUGO_TOPICS" "HUGO_FILE"))))
-        (message "TAGS done")
+        (unless (org-entry-get nil "DRAFT")
+          (org-entry-put nil "DRAFT" "true"))
         (unless (org-entry-get nil "HUGO_DATE")
           (org-entry-put nil "HUGO_DATE" current-time)))
+
       (when first
-        (message "ABout to go to start")
         (goto-char (org-entry-beginning-position))
         ;; The following opens the drawer
         (forward-line 1)
@@ -525,11 +573,13 @@ Returns list of properties that still must be filled in"
            (date     (concat "date = \"" (format-time-string "%Y-%m-%d" (apply 'encode-time (org-parse-time-string (org-entry-get nil "HUGO_DATE"))) t) "\"\n"))
            (topics   (concat "topics = [ \"" (mapconcat 'identity (split-string (org-entry-get nil "HUGO_TOPICS") "\\( *, *\\)" t) "\", \"") "\" ]\n"))
            (tags     (concat "tags = [ \"" (mapconcat 'identity (split-string (org-entry-get nil "HUGO_TAGS") "\\( *, *\\)" t) "\", \"") "\" ]\n"))
+           (draft    (concat "draft = " (org-entry-get nil "DRAFT") "\n"))
            (fm (concat "+++\n"
                        title
                        date
                        tags
                        topics
+                       draft
                        "+++\n\n"))
            (message "setting file")
            (file     (org-entry-get nil "HUGO_FILE"))
@@ -544,6 +594,28 @@ Returns list of properties that still must be filled in"
       ;  (setq file (concat hugo-content-dir file))
       (unless (string-match "\\.html$" file)
         (setq file (concat file ".html")))
+
+      ;;(message (file-name-directory file))
+      ;; image folder
+      (setq impath 
+                    (concat (file-name-directory file) (file-name-sans-extension (file-name-nondirectory file)))
+                    
+            )
+      (message "Image path is")
+      (message impath)
+
+      ;; force create it
+      (make-directory impath "yes")
+      ;; get files
+      (setq png-files (directory-files
+                       (file-name-directory (buffer-file-name))
+                       nil "\\.png$") )
+      ;; find all images (png) in current file directory and copy to image path
+      (mapcar '(lambda (f)
+                 (copy-file f (concat impath "/" (file-name-nondirectory f)) "yes"
+                 ))
+              png-files
+            )
       ;; save html
       (with-temp-buffer
         (insert fm)
@@ -555,6 +627,13 @@ Returns list of properties that still must be filled in"
 
   (define-key org-mode-map (kbd "M-g h") 'hugo)
 
+  ;; Remove title centering
+  (setq
+   org-html-head-extra
+   (concat
+    org-html-head-extra
+     "<style type=\"text/css\">\n .title {text-align: left} \n .subtitle {text-align: left}\n</style>\n"
+    ))
   ;;------------------------------------------------------------
   ;;----------------------display-stuff-------------------------
   ;;------------------------------------------------------------
@@ -584,14 +663,15 @@ Returns list of properties that still must be filled in"
     ("8ec2e01474ad56ee33bc0534bdbe7842eea74dccfb576e09f99ef89a705f5501" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" default)))
  '(evil-want-Y-yank-to-eol t)
  '(fci-rule-character-color "#d9d9d9")
- '(fci-rule-color "#161616")
+ '(fci-rule-color "#161616" t)
  '(fringe-mode 10 nil (fringe))
  '(linum-format " %6d ")
  '(main-line-color1 "#222232")
  '(main-line-color2 "#333343")
+ '(matlab-shell-command-switches (quote ("-nodesktop -nosplash")))
  '(package-selected-packages
    (quote
-    (\(\\\,\ sunny-day\)-theme zonokai-theme zen-and-art-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme subatomic256-theme subatomic-theme spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme pastels-on-dark-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme niflheim-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme firebelly-theme farmhouse-theme espresso-theme dracula-theme django-theme darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme rainbow-mode rainbow-identifiers color-identifiers-mode zenburn-theme ein websocket pdf-tools tablist pandoc-mode ox-pandoc ht xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help yapfify yaml-mode wgrep web-mode tagedit smex smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder ranger pyvenv pytest pyenv-mode py-isort pug-mode pip-requirements pbcopy osx-trash osx-dictionary orgit org-ref key-chord org-projectile org-present org org-pomodoro alert log4e gntp org-download ob-ipython dash-functional mmm-mode markdown-toc markdown-mode magit-gitflow live-py-mode less-css-mode launchctl ivy-hydra hy-mode htmlize helm-bibtex parsebib haml-mode gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md evil-magit magit magit-popup git-commit with-editor emmet-mode disaster deft cython-mode counsel-projectile counsel swiper ivy company-web web-completion-data company-statistics company-c-headers company-auctex company-anaconda company cmake-mode clang-format biblio biblio-core auto-yasnippet yasnippet auctex-latexmk auctex anaconda-mode pythonic ac-ispell auto-complete ws-butler window-numbering which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide ido-vertical-mode hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed dash aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async quelpa package-build spacemacs-theme)))
+    (request-deferred deferred racer cargo wolfram-mode thrift stan-mode scad-mode qml-mode matlab-mode julia-mode arduino-mode web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc company-tern tern coffee-mode \(\\\,\ sunny-day\)-theme zonokai-theme zen-and-art-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme subatomic256-theme subatomic-theme spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme pastels-on-dark-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme niflheim-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme firebelly-theme farmhouse-theme espresso-theme dracula-theme django-theme darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme rainbow-mode rainbow-identifiers color-identifiers-mode zenburn-theme ein websocket pdf-tools tablist pandoc-mode ox-pandoc ht xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help yapfify yaml-mode wgrep web-mode tagedit smex smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder ranger pyvenv pytest pyenv-mode py-isort pug-mode pip-requirements pbcopy osx-trash osx-dictionary orgit org-ref key-chord org-projectile org-present org org-pomodoro alert log4e gntp org-download ob-ipython dash-functional mmm-mode markdown-toc markdown-mode magit-gitflow live-py-mode less-css-mode launchctl ivy-hydra hy-mode htmlize helm-bibtex parsebib haml-mode gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md evil-magit magit magit-popup git-commit with-editor emmet-mode disaster deft cython-mode counsel-projectile counsel swiper ivy company-web web-completion-data company-statistics company-c-headers company-auctex company-anaconda company cmake-mode clang-format biblio biblio-core auto-yasnippet yasnippet auctex-latexmk auctex anaconda-mode pythonic ac-ispell auto-complete ws-butler window-numbering which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint info+ indent-guide ido-vertical-mode hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed dash aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async quelpa package-build spacemacs-theme)))
  '(powerline-color1 "#222232")
  '(powerline-color2 "#333343")
  '(vc-annotate-background "#0E0E0E")
